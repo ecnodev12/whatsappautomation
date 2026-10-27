@@ -333,6 +333,16 @@ def connect_whatsapp():
         logger.error(f"Error connecting to WhatsApp: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/whatsapp/qrcode', methods=['GET'])
+def get_qr_code():
+    """Get WhatsApp QR code for scanning"""
+    try:
+        result = whatsapp_worker.get_qr_code()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error getting QR code: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/whatsapp/status', methods=['GET'])
 def whatsapp_status():
     """Get WhatsApp connection status"""

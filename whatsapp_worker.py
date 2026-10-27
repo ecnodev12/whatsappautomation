@@ -89,9 +89,15 @@ class WhatsAppWorker:
     def _browser_thread_worker(self):
         try:
             self.playwright = sync_playwright().start()
+            # Check if running in a cloud/production environment
+            is_production = os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER') or os.getenv('VERCEL') or os.getenv('GOOGLE_CLOUD_PROJECT')
+            headless_mode = bool(is_production)  # Run headless in production, headed locally
+            
+            logger.info(f"Starting browser in {'headless' if headless_mode else 'headed'} mode")
+            
             self.context = self.playwright.chromium.launch_persistent_context(
                 user_data_dir=Config.SESSION_FOLDER,
-                headless=False,
+                headless=headless_mode,
                 args=['--no-sandbox', '--disable-setuid-sandbox',
                       '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
             )
@@ -403,6 +409,39 @@ class WhatsAppWorker:
             logger.error(f"check_login_status: {e}")
             self.is_logged_in = False
             return False
+    
+    def get_qr_code(self):
+        """Capture WhatsApp QR code as base64 image for display in web UI"""
+        try:
+            if not self.page:
+                return {'success': False, 'error': 'Browser not connected'}
+            
+            if self.is_logged_in:
+                return {'success': False, 'error': 'Already logged in'}
+            
+            # Wait for QR code canvas
+            try:
+                self.page.wait_for_selector('canvas[aria-label*="QR"]', timeout=5000)
+            except:
+                return {'success': False, 'error': 'QR code not found'}
+            
+            # Get QR code as data URL
+            qr_data = self.page.evaluate('''() => {
+                const canvas = document.querySelector('canvas[aria-label*="QR"]');
+                if (canvas) {
+                    return canvas.toDataURL('image/png');
+                }
+                return null;
+            }''')
+            
+            if qr_data:
+                return {'success': True, 'qr_code': qr_data}
+            else:
+                return {'success': False, 'error': 'Failed to capture QR code'}
+                
+        except Exception as e:
+            logger.error(f"get_qr_code error: {e}")
+            return {'success': False, 'error': str(e)}
 
     # ──────────────────────────────────────────────────────────────────────────
     # Public send API (thread-safe queue)

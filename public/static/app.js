@@ -104,8 +104,10 @@ async function connectWhatsApp() {
     const r = await fetch('/api/whatsapp/connect', { method: 'POST' });
     const d = await r.json();
     if (d.success) {
-      toast('Browser opened — scan the QR code!', 'success');
-      showMsg('connectionMessage', 'Browser started. Scan the QR code in the browser window.', 'info');
+      toast('Browser started!', 'success');
+      showMsg('connectionMessage', 'Connecting to WhatsApp Web...', 'info');
+      // Start polling for QR code
+      showQRCodeModal();
     } else {
       toast(d.error || 'Connection failed', 'error');
     }
@@ -113,6 +115,63 @@ async function connectWhatsApp() {
     toast('Connection error', 'error');
   } finally {
     if (btn) { btn.textContent = 'Connect Now'; btn.disabled = false; }
+  }
+}
+
+let qrPollInterval = null;
+
+async function showQRCodeModal() {
+  // Create modal if it doesn't exist
+  let modal = document.getElementById('qrModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'qrModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:10000;';
+    modal.innerHTML = `
+      <div style="background:white;padding:30px;border-radius:12px;text-align:center;max-width:400px;">
+        <h2 style="margin:0 0 20px 0;color:#25D366;">Scan QR Code</h2>
+        <div id="qrCodeContainer" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
+          <div style="color:#666;">Loading QR code...</div>
+        </div>
+        <p style="color:#666;margin:20px 0 0 0;">Scan this code with WhatsApp on your phone</p>
+        <button onclick="closeQRModal()" style="margin-top:20px;padding:10px 20px;background:#dc3545;color:white;border:none;border-radius:6px;cursor:pointer;">Close</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  
+  // Start polling for QR code
+  pollQRCode();
+  qrPollInterval = setInterval(pollQRCode, 2000); // Poll every 2 seconds
+}
+
+async function pollQRCode() {
+  try {
+    const r = await fetch('/api/whatsapp/qrcode');
+    const d = await r.json();
+    const container = document.getElementById('qrCodeContainer');
+    
+    if (d.success && d.qr_code) {
+      container.innerHTML = `<img src="${d.qr_code}" style="width:280px;height:280px;border:2px solid #ddd;padding:10px;background:white;" alt="WhatsApp QR Code">`;
+    } else if (d.error && d.error.includes('Already logged in')) {
+      clearInterval(qrPollInterval);
+      closeQRModal();
+      toast('Already logged in to WhatsApp!', 'success');
+    } else {
+      container.innerHTML = `<div style="color:#666;">${d.error || 'Waiting for QR code...'}</div>`;
+    }
+  } catch (e) {
+    console.error('QR poll error:', e);
+  }
+}
+
+function closeQRModal() {
+  const modal = document.getElementById('qrModal');
+  if (modal) modal.style.display = 'none';
+  if (qrPollInterval) {
+    clearInterval(qrPollInterval);
+    qrPollInterval = null;
   }
 }
 
