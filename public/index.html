@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WA Bulk Sender — Campaign Dashboard</title>
+  <meta name="description" content="Send personalized WhatsApp bulk messages with media attachments, CSV/XLSX import, and live progress tracking.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="white" width="26" height="26">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.857L0 24l6.335-1.652A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.372l-.36-.214-3.732.975.997-3.647-.235-.374A9.818 9.818 0 1112 21.818z"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">WA Bulk Sender</span>
+      <span class="brand-sub">Campaign Manager</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" onclick="showView('dashboard',this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="#" class="nav-item" onclick="showView('new-campaign',this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Campaign
+    </a>
+    <a href="#" class="nav-item" onclick="showView('campaigns',this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Campaigns
+    </a>
+    <a href="#" class="nav-item" onclick="showView('groups',this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Group Grabber
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="wa-status-card" id="sidebarStatus">
+      <div class="wa-status-dot disconnected" id="sidebarDot"></div>
+      <div class="wa-status-info">
+        <span class="wa-status-label">WhatsApp</span>
+        <span class="wa-status-value" id="sidebarStatusText">Disconnected</span>
+      </div>
+      <button class="connect-mini-btn" id="connectMiniBtn" onclick="connectWhatsApp()">Connect</button>
+    </div>
+  </div>
+</aside>
+
+<!-- ════════════════════════════ MAIN CONTENT ════════════════════════════ -->
+<main class="main-content">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-status" id="topbarStatus">
+        <span class="status-dot disconnected" id="topbarDot"></span>
+        <span id="topbarStatusText">Not Connected</span>
+      </div>
+      <button class="btn btn-logout" id="logoutTopBtn" style="display:none" onclick="logoutWhatsApp()">Logout</button>
+    </div>
+  </header>
+
+  <!-- ─────────────── VIEW: DASHBOARD ─────────────── -->
+  <div id="view-dashboard" class="view active">
+    <div class="dashboard-grid">
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon icon-total">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div>
+            <div class="stat-num" id="dashTotal">0</div>
+            <div class="stat-lbl">Total Contacts</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-sent">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <div class="stat-num" id="dashSent">0</div>
+            <div class="stat-lbl">Sent</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-failed">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div>
+            <div class="stat-num" id="dashFailed">0</div>
+            <div class="stat-lbl">Failed</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon icon-pending">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="stat-num" id="dashPending">0</div>
+            <div class="stat-lbl">Pending</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WhatsApp connect card -->
+      <div class="card connect-card" id="connectCard">
+        <div class="connect-card-inner">
+          <div class="connect-icon">
+            <svg viewBox="0 0 24 24" fill="#25d366" width="44" height="44">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.857L0 24l6.335-1.652A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.372l-.36-.214-3.732.975.997-3.647-.235-.374A9.818 9.818 0 1112 21.818z"/>
+            </svg>
+          </div>
+          <div>
+            <h2>Connect WhatsApp Web</h2>
+            <p>Open a browser window and scan the QR code to link your WhatsApp account.</p>
+          </div>
+          <button class="btn btn-primary" id="connectBtn" onclick="connectWhatsApp()">
+            Connect Now
+          </button>
+        </div>
+        <div id="connectionMessage" class="inline-msg" style="display:none"></div>
+      </div>
+
+      <!-- Recent Campaigns quick-view -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Recent Campaigns</h2>
+          <button class="btn btn-sm btn-outline" onclick="loadCampaigns(); showView('campaigns', document.querySelector('.nav-item:nth-child(3)'))">View All</button>
+        </div>
+        <div id="recentCampaignsList" class="campaigns-table-wrap">
+          <div class="empty-state">
+            <svg width="40" height="40" fill="none" stroke="#ccc" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>No campaigns yet. <a href="#" onclick="showView('new-campaign', document.querySelector('.nav-item:nth-child(2)'))">Create one →</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── VIEW: NEW CAMPAIGN ─────────────── -->
+  <div id="view-new-campaign" class="view" style="display:none">
+    <div class="two-col-layout">
+
+      <!-- Left: form -->
+      <div class="form-col">
+        <div class="card">
+          <div class="card-header">
+            <h2>Create Campaign</h2>
+          </div>
+
+          <form id="createCampaignForm" onsubmit="createCampaign(event)">
+            <div class="form-group">
+              <label for="campaignName">Campaign Name</label>
+              <input type="text" id="campaignName" required placeholder="e.g. Summer Sale 2025">
+            </div>
+
+            <!-- Message composer -->
+            <div class="form-group">
+              <label>
+                Message Template
+                <span class="label-hint">Use <code>{{name}}</code> to personalize</span>
+              </label>
+              <div class="composer-box" id="composerBox">
+                <!-- Attachment preview -->
+                <div id="attachPreview" class="attach-preview" style="display:none">
+                  <div id="attachPreviewInner"></div>
+                  <button type="button" class="attach-remove" onclick="clearAttachment()">✕ Remove</button>
+                </div>
+                <!-- Textarea -->
+                <textarea id="campaignMessage" class="composer-textarea" rows="5"
+                  placeholder="Type your message here…&#10;&#10;Hi {{name}}, we have an exciting update for you! 🎉"
+                  oninput="updateCharCount()"></textarea>
+                <!-- Toolbar -->
+                <div class="composer-toolbar">
+                  <div class="toolbar-left" style="position:relative">
+                    <button type="button" class="tool-btn" title="Attach media" onclick="toggleAttachMenu(event)" id="attachTrigger">
+                      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                    </button>
+                    <button type="button" class="tool-btn" title="Insert {{name}}" onclick="insertPlaceholder()">
+                      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>
+                    </button>
+
+                    <!-- Attach menu popup (anchored inside toolbar-left) -->
+                    <div id="attachMenu" class="attach-menu" style="display:none">
+                      <div class="attach-menu-header">Attach Media</div>
+                      <button type="button" class="attach-opt" onclick="triggerFileInput('image')">
+                        <span class="attach-opt-icon">🖼️</span>
+                        <div><strong>Image / Video</strong><small>JPG, PNG, GIF, WEBP, MP4, MOV</small></div>
+                      </button>
+                      <button type="button" class="attach-opt" onclick="triggerFileInput('document')">
+                        <span class="attach-opt-icon">📄</span>
+                        <div><strong>Document</strong><small>PDF, DOCX, XLSX, TXT, ZIP, CSV</small></div>
+                      </button>
+                      <button type="button" class="attach-opt" onclick="triggerFileInput('audio')">
+                        <span class="attach-opt-icon">🎵</span>
+                        <div><strong>Audio</strong><small>MP3, OGG, WAV, M4A</small></div>
+                      </button>
+                    </div>
+                  </div>
+                  <span class="char-count" id="charCount">0 / 4096</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden file inputs -->
+            <input type="file" id="mediaInputImage"    accept="image/*,video/*" style="display:none" onchange="handleFileSelected(this,'image')">
+            <input type="file" id="mediaInputDocument" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.7z,.csv" style="display:none" onchange="handleFileSelected(this,'document')">
+            <input type="file" id="mediaInputAudio"    accept=".mp3,.ogg,.wav,.m4a,.aac,.flac" style="display:none" onchange="handleFileSelected(this,'audio')">
+
+            <button type="submit" class="btn btn-primary btn-block" id="createCampaignBtn">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create Campaign
+            </button>
+          </form>
+          <div id="createCampaignMessage" class="inline-msg" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Right: upload contacts -->
+      <div class="form-col">
+        <div class="card" id="uploadSection" style="display:none">
+          <div class="card-header">
+            <h2>Add Contacts</h2>
+            <span class="campaign-badge" id="uploadCampaignBadge"></span>
+          </div>
+
+          <!-- Source tabs -->
+          <div class="contact-tabs">
+            <button type="button" class="tab-btn active" id="tabBtnFile" onclick="switchContactTab('file')">
+              📁 CSV / Excel File
+            </button>
+            <button type="button" class="tab-btn" id="tabBtnGroups" onclick="switchContactTab('groups')">
+              👥 WhatsApp Groups
+            </button>
+          </div>
+
+          <!-- Tab 1: File Upload -->
+          <div id="contactTabFile">
+            <p class="card-desc" style="margin-top:12px">Upload a CSV or XLSX file with <strong>phone</strong> and optional <strong>name</strong> columns.</p>
+
+            <form id="uploadForm" onsubmit="uploadContacts(event)">
+              <!-- Drop zone -->
+              <div class="drop-zone" id="dropZone"
+                onclick="document.getElementById('fileInput').click()"
+                ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+                <svg width="36" height="36" fill="none" stroke="#25d366" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p><strong>Drag &amp; drop your file here</strong></p>
+                <p class="drop-hint">or click to browse &nbsp;·&nbsp; CSV, XLSX accepted</p>
+                <div id="dropFileName" class="drop-filename"></div>
+              </div>
+              <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none" onchange="onFileInputChange(this)">
+
+              <div class="form-group" style="margin-top:16px">
+                <label for="messageTemplate">Message Template <span class="label-hint">(Optional — overrides campaign default)</span></label>
+                <textarea id="messageTemplate" rows="3" placeholder="Hi {{name}}, this is your message…"></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block" id="uploadBtn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+                Upload Contacts
+              </button>
+            </form>
+            <div id="uploadMessage" class="inline-msg" style="display:none"></div>
+          </div>
+
+          <!-- Tab 2: WhatsApp Groups Import -->
+          <div id="contactTabGroups" style="display:none">
+            <p class="card-desc" style="margin-top:12px">Select WhatsApp groups from your connected account to import members directly.</p>
+
+            <div class="groups-header-actions">
+              <input type="text" id="campaignGroupSearch" class="form-input" style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid var(--border);" placeholder="🔍 Search groups…" oninput="filterCampaignGroups()">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="loadWhatsAppGroupsForCampaign(true)" title="Refresh groups">🔄 Refresh</button>
+            </div>
+
+            <div id="campaignGroupsLoading" style="text-align:center; padding: 20px; display:none;">
+              <div class="spinner"></div>
+              <div style="margin-top:8px; font-size:12px; color:var(--text-3);">Fetching groups from WhatsApp…</div>
+            </div>
+
+            <div id="campaignGroupsList" class="groups-checkbox-list"></div>
+
+            <div class="group-import-options" style="margin-top: 12px; display:flex; justify-content:space-between; align-items:center;">
+              <label class="custom-checkbox">
+                <input type="checkbox" id="campaignExcludeAdmins" checked>
+                <span>Exclude Group Admins</span>
+              </label>
+              <span id="selectedGroupsCount" style="font-size:12px; color:var(--text-3);">0 groups selected</span>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 8px;">
+              <button type="button" class="btn btn-primary btn-block" id="campaignImportGroupsBtn" onclick="importGroupsToCampaign()">
+                👥 Import Selected Contacts
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="exportSelectedCampaignGroupsCSV()" title="Download as CSV">
+                📥 CSV
+              </button>
+            </div>
+            <div id="campaignGroupImportMessage" class="inline-msg" style="display:none; margin-top: 10px;"></div>
+          </div>
+        </div>
+
+        <!-- Tip card when no campaign yet -->
+        <div class="card tip-card" id="tipCard">
+          <div class="tip-icon">💡</div>
+          <h3>How it works</h3>
+          <ol class="tip-list">
+            <li>Connect WhatsApp Web</li>
+            <li>Create a campaign with your message</li>
+            <li>Optionally attach an image or file</li>
+            <li>Upload contacts (CSV / XLSX)</li>
+            <li>Start sending and monitor live progress</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── VIEW: CAMPAIGNS ─────────────── -->
+  <div id="view-campaigns" class="view" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <h2>All Campaigns</h2>
+        <button class="btn btn-sm btn-outline" onclick="loadCampaigns()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 101.48-5.36L1 10"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div id="campaignsList" class="campaigns-table-wrap">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── VIEW: GROUP CONTACT GRABBER ─────────────── -->
+  <div id="view-groups" class="view" style="display:none">
+    <div class="view-header-row" style="margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <h2 style="font-size:22px; font-weight:700;">WhatsApp Group Contacts Grabber</h2>
+        <p style="color:var(--text-2); font-size:13px; margin-top:4px;">Export group members, filter admins, and add contacts directly to marketing campaigns.</p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" onclick="loadStudioGroups(true)">🔄 Refresh Groups</button>
+        <button class="btn btn-primary" onclick="exportStudioSelectedCSV()">📥 Export to CSV</button>
+      </div>
+    </div>
+
+    <div class="grid-2col">
+      <!-- Left: Groups List -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Your WhatsApp Groups</h3>
+          <span class="badge badge-info" id="studioGroupsCountBadge">0 Groups</span>
+        </div>
+        <div style="margin: 12px 0;">
+          <input type="text" id="studioGroupSearch" class="form-input" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--border);" placeholder="🔍 Search groups…" oninput="filterStudioGroups()">
+        </div>
+        <div class="group-select-bar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:12px; color:var(--text-2);">
+          <div>
+            <a href="javascript:void(0)" onclick="selectAllStudioGroups(true)" style="color:var(--wa-green); text-decoration:none; font-weight:600;">Select All</a> &nbsp;·&nbsp;
+            <a href="javascript:void(0)" onclick="selectAllStudioGroups(false)" style="color:var(--text-2); text-decoration:none;">Deselect All</a>
+          </div>
+          <span id="studioSelectedGroupsLabel">0 selected</span>
+        </div>
+        <div id="studioGroupsLoading" style="text-align:center; padding: 30px; display:none;">
+          <div class="spinner"></div>
+          <div style="margin-top:10px; font-size:12px; color:var(--text-3);">Scanning WhatsApp groups…</div>
+        </div>
+        <div id="studioGroupsList" class="groups-checkbox-list" style="max-height: 480px; overflow-y: auto;"></div>
+      </div>
+
+      <!-- Right: Participants Preview & Quick Import -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Group Members &amp; Quick Import</h3>
+          <span class="badge badge-success" id="studioParticipantsCountBadge">0 Members</span>
+        </div>
+
+        <div style="background:var(--bg); padding:16px; border-radius:10px; border:1px solid var(--border); margin: 14px 0;">
+          <h4 style="font-size:13px; font-weight:600; margin-bottom:10px;">Import Members Directly to Campaign:</h4>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <select id="studioTargetCampaignSelect" class="form-select" style="flex:1; min-width:200px; padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
+              <option value="">— Select Target Campaign —</option>
+            </select>
+            <button class="btn btn-primary" onclick="importStudioSelectedToCampaign()" id="studioImportBtn">
+              + Add to Campaign
+            </button>
+          </div>
+          <div style="margin-top:10px;">
+            <label class="custom-checkbox">
+              <input type="checkbox" id="studioExcludeAdmins" checked>
+              <span>Exclude Group Admins</span>
+            </label>
+          </div>
+          <div id="studioImportMsg" class="inline-msg" style="display:none; margin-top:10px;"></div>
+        </div>
+
+        <div class="card-header" style="margin-top:10px; padding: 10px 0;">
+          <h4 style="font-size:14px; font-weight:600;">Member Preview</h4>
+          <span style="font-size:12px; color:var(--text-3);" id="studioPreviewStatusText">Click any group on the left to preview</span>
+        </div>
+
+        <div class="table-container" style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+          <table class="data-table" id="studioParticipantsTable" style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead style="background:var(--bg); position:sticky; top:0;">
+              <tr>
+                <th style="padding:10px 12px; text-align:left;">Phone</th>
+                <th style="padding:10px 12px; text-align:left;">Name</th>
+                <th style="padding:10px 12px; text-align:left;">Role</th>
+              </tr>
+            </thead>
+            <tbody id="studioParticipantsBody">
+              <tr>
+                <td colspan="3" style="text-align:center; color:var(--text-3); padding:30px;">
+                  Select a group from the list to preview its members
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════ CAMPAIGN DETAIL MODAL ═══════════════════════ -->
+<div id="campaignModal" class="modal-overlay" style="display:none" onclick="closeCampaignModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h2 id="modalCampaignName">Campaign</h2>
+        <span class="modal-status-badge" id="modalStatusBadge">draft</span>
+      </div>
+      <button class="modal-close" onclick="closeCampaignModal()">&times;</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="modal-stats">
+      <div class="mstat"><div class="mstat-num" id="statTotal">0</div><div class="mstat-lbl">Total</div></div>
+      <div class="mstat sent"><div class="mstat-num" id="statSent">0</div><div class="mstat-lbl">Sent</div></div>
+      <div class="mstat failed"><div class="mstat-num" id="statFailed">0</div><div class="mstat-lbl">Failed</div></div>
+      <div class="mstat pending"><div class="mstat-num" id="statPending">0</div><div class="mstat-lbl">Pending</div></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="modal-progress-wrap">
+      <div class="modal-progress-track">
+        <div id="progressBar" class="modal-progress-fill" style="width:0%"></div>
+      </div>
+      <span id="progressText" class="progress-pct">0%</span>
+    </div>
+
+    <!-- Media info -->
+    <div id="modalMediaInfo" class="modal-media-info" style="display:none">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+      <span id="modalMediaFilename"></span>
+    </div>
+
+    <!-- Controls -->
+    <div class="modal-controls">
+      <button id="startBtn"  class="btn btn-success"  onclick="startCampaign()">▶ Start</button>
+      <button id="pauseBtn"  class="btn btn-warning"  onclick="pauseCampaign()"  style="display:none">⏸ Pause</button>
+      <button id="resumeBtn" class="btn btn-success"  onclick="resumeCampaign()" style="display:none">▶ Resume</button>
+      <button id="stopBtn"   class="btn btn-danger"   onclick="stopCampaign()"   style="display:none">⏹ Stop</button>
+      <button id="restartBtn" class="btn btn-primary" onclick="restartCampaign()" style="display:none">🔄 Restart</button>
+    </div>
+
+    <!-- Contacts list -->
+    <div class="modal-contacts-header">
+      <h3>Contacts</h3>
+      <div class="filter-tabs" id="filterTabs">
+        <button class="ftab active" onclick="filterContacts('all',this)">All</button>
+        <button class="ftab" onclick="filterContacts('pending',this)">Pending</button>
+        <button class="ftab" onclick="filterContacts('sent',this)">Sent</button>
+        <button class="ftab" onclick="filterContacts('failed',this)">Failed</button>
+      </div>
+    </div>
+    <div id="contactsList" class="contacts-list"></div>
+  </div>
+</div>
+
+<!-- Toast notifications -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
