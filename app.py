@@ -59,6 +59,15 @@ def index():
     """Main dashboard page"""
     return render_template('index.html')
 
+@app.route('/version')
+def version():
+    """Version check endpoint"""
+    return jsonify({
+        'version': '2.0-VNC',
+        'vnc_enabled': True,
+        'features': ['VNC Browser Viewer', 'Remote Display', 'Full Browser Access']
+    })
+
 @app.route('/vnc')
 def vnc_viewer():
     """Redirect to noVNC browser viewer"""
