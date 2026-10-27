@@ -104,10 +104,13 @@ async function connectWhatsApp() {
     const r = await fetch('/api/whatsapp/connect', { method: 'POST' });
     const d = await r.json();
     if (d.success) {
-      toast('Browser started!', 'success');
-      showMsg('connectionMessage', 'Connecting to WhatsApp Web...', 'info');
-      // Start polling for QR code
-      showQRCodeModal();
+      toast('Browser starting! Opening viewer...', 'success');
+      showMsg('connectionMessage', 'Browser started successfully!', 'success');
+      // Open VNC viewer in new tab after 2 seconds
+      setTimeout(() => {
+        window.open('/vnc', '_blank', 'width=1200,height=800');
+        toast('Browser viewer opened in new tab. Scan QR code there!', 'info');
+      }, 2000);
     } else {
       toast(d.error || 'Connection failed', 'error');
     }

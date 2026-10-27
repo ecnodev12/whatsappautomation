@@ -59,6 +59,50 @@ def index():
     """Main dashboard page"""
     return render_template('index.html')
 
+@app.route('/vnc')
+def vnc_viewer():
+    """Redirect to noVNC browser viewer"""
+    # In production, this will show the browser via VNC
+    # Get the current host
+    host = request.host.split(':')[0]
+    # Redirect to noVNC on port 6080
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>WhatsApp Browser Viewer</title>
+        <style>
+            body {{ margin: 0; padding: 20px; font-family: Arial; background: #1e1e1e; color: white; }}
+            .container {{ max-width: 800px; margin: 0 auto; }}
+            h1 {{ color: #25D366; }}
+            .info {{ background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+            .btn {{ display: inline-block; padding: 12px 24px; background: #25D366; color: white; 
+                    text-decoration: none; border-radius: 6px; margin: 10px 5px; }}
+            iframe {{ width: 100%; height: 80vh; border: 2px solid #25D366; border-radius: 8px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🖥️ WhatsApp Browser Viewer</h1>
+            <div class="info">
+                <p><strong>This is your WhatsApp Web browser running in the cloud!</strong></p>
+                <p>You can interact with it just like a local browser:</p>
+                <ul>
+                    <li>✅ Scan the QR code directly here</li>
+                    <li>✅ View messages and chats</li>
+                    <li>✅ Watch campaigns run in real-time</li>
+                </ul>
+                <p><strong>VNC Password:</strong> whatsapp</p>
+            </div>
+            <iframe src="http://{host}:6080/vnc.html?autoconnect=true&password=whatsapp"></iframe>
+            <div class="info">
+                <a href="/" class="btn">← Back to Dashboard</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+
 @app.route('/api/campaigns', methods=['GET'])
 def get_campaigns():
     """Get all campaigns"""
