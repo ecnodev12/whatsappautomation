@@ -110,7 +110,8 @@ class WhatsAppWorker:
             self.is_connected = True
 
             self.page.goto('https://web.whatsapp.com', wait_until='domcontentloaded', timeout=60000)
-            time.sleep(5)
+            logger.info("WhatsApp Web page loaded")
+            time.sleep(8)  # Wait for QR code to render
 
             # ── Inject WA-JS once on page load ──────────────────────────────
             self._inject_wajs()
@@ -414,34 +415,63 @@ class WhatsAppWorker:
         """Capture WhatsApp QR code as base64 image for display in web UI"""
         try:
             if not self.page:
-                return {'success': False, 'error': 'Browser not connected'}
+                return {'success': False, 'error': 'Browser not connected. Click Connect first.'}
             
             if self.is_logged_in:
                 return {'success': False, 'error': 'Already logged in'}
             
-            # Wait for QR code canvas
+            # Check if page is loaded
             try:
-                self.page.wait_for_selector('canvas[aria-label*="QR"]', timeout=5000)
+                current_url = self.page.url
+                if 'web.whatsapp.com' not in current_url:
+                    return {'success': False, 'error': 'Loading WhatsApp Web...'}
             except:
-                return {'success': False, 'error': 'QR code not found'}
+                return {'success': False, 'error': 'Page not ready yet...'}
             
-            # Get QR code as data URL
-            qr_data = self.page.evaluate('''() => {
-                const canvas = document.querySelector('canvas[aria-label*="QR"]');
-                if (canvas) {
-                    return canvas.toDataURL('image/png');
-                }
-                return null;
-            }''')
+            # Try multiple QR code selectors
+            qr_selectors = [
+                'canvas[aria-label*="QR"]',
+                'canvas[aria-label="Scan me!"]',
+                'canvas[role="img"]',
+                'div[data-ref] canvas',
+                'canvas'
+            ]
             
-            if qr_data:
-                return {'success': True, 'qr_code': qr_data}
-            else:
-                return {'success': False, 'error': 'Failed to capture QR code'}
+            qr_data = None
+            for selector in qr_selectors:
+                try:
+                    # Check if element exists
+                    element = self.page.query_selector(selector)
+                    if element:
+                        # Try to get QR code
+                        qr_data = self.page.evaluate(f'''() => {{
+                            const canvas = document.querySelector('{selector}');
+                            if (canvas && canvas.width > 100) {{
+                                return canvas.toDataURL('image/png');
+                            }}
+                            return null;
+                        }}''')
+                        if qr_data and qr_data.startswith('data:image'):
+                            logger.info(f"QR code captured using selector: {selector}")
+                            return {'success': True, 'qr_code': qr_data}
+                except Exception as e:
+                    logger.debug(f"Selector {selector} failed: {e}")
+                    continue
+            
+            # If no QR found, check if already logged in
+            try:
+                is_chat_visible = self.page.query_selector('#side') is not None
+                if is_chat_visible:
+                    self.is_logged_in = True
+                    return {'success': False, 'error': 'Already logged in'}
+            except:
+                pass
+            
+            return {'success': False, 'error': 'QR code not visible yet. Please wait...'}
                 
         except Exception as e:
             logger.error(f"get_qr_code error: {e}")
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': f'Error: {str(e)}'}
 
     # ──────────────────────────────────────────────────────────────────────────
     # Public send API (thread-safe queue)

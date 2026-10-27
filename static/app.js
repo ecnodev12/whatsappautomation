@@ -130,8 +130,9 @@ async function showQRCodeModal() {
     modal.innerHTML = `
       <div style="background:white;padding:30px;border-radius:12px;text-align:center;max-width:400px;">
         <h2 style="margin:0 0 20px 0;color:#25D366;">Scan QR Code</h2>
-        <div id="qrCodeContainer" style="min-height:300px;display:flex;align-items:center;justify-content:center;">
-          <div style="color:#666;">Loading QR code...</div>
+        <div id="qrCodeContainer" style="min-height:300px;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+          <div style="color:#666;margin-bottom:10px;">Starting browser...</div>
+          <div style="color:#999;font-size:14px;">This may take 10-15 seconds</div>
         </div>
         <p style="color:#666;margin:20px 0 0 0;">Scan this code with WhatsApp on your phone</p>
         <button onclick="closeQRModal()" style="margin-top:20px;padding:10px 20px;background:#dc3545;color:white;border:none;border-radius:6px;cursor:pointer;">Close</button>
@@ -141,9 +142,11 @@ async function showQRCodeModal() {
   }
   modal.style.display = 'flex';
   
-  // Start polling for QR code
-  pollQRCode();
-  qrPollInterval = setInterval(pollQRCode, 2000); // Poll every 2 seconds
+  // Wait 8 seconds before first poll to let browser start
+  setTimeout(() => {
+    pollQRCode();
+    qrPollInterval = setInterval(pollQRCode, 3000); // Poll every 3 seconds
+  }, 8000);
 }
 
 async function pollQRCode() {
@@ -153,16 +156,27 @@ async function pollQRCode() {
     const container = document.getElementById('qrCodeContainer');
     
     if (d.success && d.qr_code) {
-      container.innerHTML = `<img src="${d.qr_code}" style="width:280px;height:280px;border:2px solid #ddd;padding:10px;background:white;" alt="WhatsApp QR Code">`;
+      container.innerHTML = `<img src="${d.qr_code}" style="width:280px;height:280px;border:2px solid #ddd;padding:10px;background:white;border-radius:8px;" alt="WhatsApp QR Code">`;
     } else if (d.error && d.error.includes('Already logged in')) {
       clearInterval(qrPollInterval);
       closeQRModal();
       toast('Already logged in to WhatsApp!', 'success');
     } else {
-      container.innerHTML = `<div style="color:#666;">${d.error || 'Waiting for QR code...'}</div>`;
+      // Show the actual error message from backend
+      const errorMsg = d.error || 'Waiting for QR code...';
+      container.innerHTML = `
+        <div style="color:#666;text-align:center;padding:20px;">
+          <div style="font-size:48px;margin-bottom:15px;">⏳</div>
+          <div>${errorMsg}</div>
+        </div>
+      `;
     }
   } catch (e) {
     console.error('QR poll error:', e);
+    const container = document.getElementById('qrCodeContainer');
+    if (container) {
+      container.innerHTML = `<div style="color:#dc3545;">Connection error. Please refresh and try again.</div>`;
+    }
   }
 }
 
