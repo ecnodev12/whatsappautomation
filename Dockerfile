@@ -1,12 +1,17 @@
 # Use Python 3.11 (recommended over 3.9)
 FROM python:3.11-slim
 
-# Install system dependencies for Playwright
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for Playwright and Chromium
 RUN apt-get update && apt-get install -y \
     wget \
+    curl \
     gnupg \
     ca-certificates \
     fonts-liberation \
+    fonts-noto-color-emoji \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -24,11 +29,10 @@ RUN apt-get update && apt-get install -y \
     libxfixes3 \
     libxkbcommon0 \
     libxrandr2 \
+    libxss1 \
+    libxtst6 \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
-WORKDIR /app
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -36,9 +40,8 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers
-RUN playwright install chromium
-RUN playwright install-deps chromium
+# Install Playwright browsers (only chromium) with system dependencies
+RUN playwright install --with-deps chromium
 
 # Copy application code
 COPY . .
