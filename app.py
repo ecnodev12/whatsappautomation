@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response
+from flask_sock import Sock
 import os
 import time
 import logging
+import json
 from werkzeug.utils import secure_filename
 from config import Config
 from firebase_service import FirebaseService
@@ -21,6 +23,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024  # 64MB max file size (for media)
+
+# Initialize WebSocket
+sock = Sock(app)
+
+# Store connected desktop apps
+connected_connectors = {}
 
 # Ensure upload folder exists
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
@@ -58,6 +66,108 @@ def allowed_media_file(filename):
 def index():
     """Main dashboard page"""
     return render_template('index.html')
+
+@app.route('/download')
+def download_page():
+    """Download page for desktop connector"""
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Download WhatsApp Connector</title>
+        <style>
+            body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
+            h1 { color: #25D366; }
+            .download-btn { display: inline-block; padding: 15px 30px; background: #25D366; 
+                           color: white; text-decoration: none; border-radius: 8px; margin: 10px; }
+            .step { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        </style>
+    </head>
+    <body>
+        <h1>📥 Download WhatsApp Connector</h1>
+        <p>Download and run the connector app on your computer to use your local browser:</p>
+        
+        <div class="step">
+            <h3>Step 1: Download for your system</h3>
+            <a href="/static/downloads/WhatsAppConnector-Windows.exe" class="download-btn">🪟 Windows</a>
+            <a href="/static/downloads/WhatsAppConnector-Mac.app.zip" class="download-btn">🍎 Mac</a>
+            <a href="/static/downloads/WhatsAppConnector-Linux" class="download-btn">🐧 Linux</a>
+        </div>
+        
+        <div class="step">
+            <h3>Step 2: Run the app</h3>
+            <p>Double-click the downloaded file to run it on your computer.</p>
+        </div>
+        
+        <div class="step">
+            <h3>Step 3: Connect</h3>
+            <p>Click "Connect to WhatsApp Web" in the app. Your Chrome browser will open.</p>
+        </div>
+        
+        <div class="step">
+            <h3>Step 4: Use the website</h3>
+            <p><a href="/">Return to dashboard</a> and start sending messages!</p>
+        </div>
+        
+        <p><strong>Note:</strong> Keep the connector app running while using the website.</p>
+    </body>
+    </html>
+    '''
+
+@sock.route('/ws/connector')
+def websocket_connector(ws):
+    """WebSocket endpoint for desktop connector"""
+    connector_id = None
+    
+    try:
+        while True:
+            message = ws.receive()
+            if not message:
+                break
+                
+            data = json.loads(message)
+            msg_type = data.get('type')
+            
+            if msg_type == 'register':
+                # Register new connector
+                connector_id = f"connector_{len(connected_connectors) + 1}"
+                connected_connectors[connector_id] = {
+                    'ws': ws,
+                    'device': data.get('device'),
+                    'version': data.get('version'),
+                    'connected_at': time.time()
+                }
+                logger.info(f"Desktop connector registered: {connector_id}")
+                ws.send(json.dumps({'type': 'registered', 'id': connector_id}))
+            
+            elif msg_type == 'message_result':
+                # Forward result to appropriate handler
+                logger.info(f"Message result from {connector_id}: {data}")
+            
+            elif msg_type == 'status':
+                # Update connector status
+                if connector_id and connector_id in connected_connectors:
+                    connected_connectors[connector_id]['status'] = data
+                    
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+    finally:
+        if connector_id and connector_id in connected_connectors:
+            del connected_connectors[connector_id]
+            logger.info(f"Desktop connector disconnected: {connector_id}")
+
+@app.route('/api/connectors/status', methods=['GET'])
+def get_connectors_status():
+    """Get status of connected desktop apps"""
+    connectors = []
+    for conn_id, conn_data in connected_connectors.items():
+        connectors.append({
+            'id': conn_id,
+            'device': conn_data.get('device'),
+            'version': conn_data.get('version'),
+            'connected_at': conn_data.get('connected_at')
+        })
+    return jsonify({'success': True, 'connectors': connectors})
 
 @app.route('/api/campaigns', methods=['GET'])
 def get_campaigns():

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WhatsApp Bulk Sender</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 400px;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .header p {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .status-card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ccc;
+    }
+    
+    .status-dot.connected {
+      background: #25D366;
+      box-shadow: 0 0 8px rgba(37, 211, 102, 0.5);
+    }
+    
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .section h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #333;
+    }
+    
+    .input-group {
+      margin-bottom: 12px;
+    }
+    
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    
+    input[type="text"],
+    input[type="file"],
+    textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: #25D366;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #20BD5A;
+    }
+    
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+      margin-top: 8px;
+    }
+    
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    
+    .stat {
+      text-align: center;
+      padding: 8px;
+      background: #f8f8f8;
+      border-radius: 4px;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #25D366;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #25D366, #128C7E);
+      transition: width 0.3s;
+    }
+    
+    .alert {
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .alert-warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .alert-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📱 WhatsApp Bulk Sender</h1>
+    <p>Send messages to multiple contacts</p>
+  </div>
+  
+  <div class="content">
+    <!-- Status Card -->
+    <div class="status-card">
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Not Connected</span>
+      </div>
+      <button class="btn btn-primary" id="connectBtn">Open WhatsApp Web</button>
+    </div>
+    
+    <!-- Upload Section -->
+    <div class="section" id="uploadSection" style="display:none;">
+      <h3>📋 Import Contacts</h3>
+      <div class="input-group">
+        <label>Excel File (name, phone, message columns)</label>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      </div>
+      <div class="input-group">
+        <label>Message Template (use {{name}} for personalization)</label>
+        <textarea id="messageTemplate" placeholder="Hi {{name}}, this is a test message..."></textarea>
+      </div>
+      <button class="btn btn-primary" id="uploadBtn" disabled>Upload Contacts</button>
+    </div>
+    
+    <!-- Campaign Section -->
+    <div class="section" id="campaignSection" style="display:none;">
+      <h3>🚀 Campaign Status</h3>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="totalContacts">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="sentCount">0</div>
+          <div class="stat-label">Sent</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="failedCount">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+      </div>
+      <button class="btn btn-primary" id="startBtn">▶️ Start Campaign</button>
+      <button class="btn btn-secondary" id="pauseBtn" style="display:none;">⏸️ Pause</button>
+      <button class="btn btn-secondary" id="stopBtn" style="display:none;">⏹️ Stop</button>
+    </div>
+    
+    <!-- Help Alert -->
+    <div class="alert alert-info">
+      <strong>How to use:</strong><br>
+      1. Click "Open WhatsApp Web" and login<br>
+      2. Upload Excel with name, phone, message<br>
+      3. Click "Start Campaign" to begin sending
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
