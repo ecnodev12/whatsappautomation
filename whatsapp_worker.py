@@ -89,10 +89,10 @@ class WhatsAppWorker:
     def _browser_thread_worker(self):
         try:
             self.playwright = sync_playwright().start()
-            # Always run in headed mode - VNC provides display in cloud
-            headless_mode = False
+            # Always run headless in cloud deployment
+            headless_mode = True
             
-            logger.info("Starting browser in headed mode (visible via VNC in cloud)")
+            logger.info("Starting browser in headless mode for cloud deployment")
             
             self.context = self.playwright.chromium.launch_persistent_context(
                 user_data_dir=Config.SESSION_FOLDER,
