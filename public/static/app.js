@@ -131,8 +131,9 @@ async function showQRCodeModal() {
       <div style="background:white;padding:30px;border-radius:12px;text-align:center;max-width:400px;">
         <h2 style="margin:0 0 20px 0;color:#25D366;">Scan QR Code</h2>
         <div id="qrCodeContainer" style="min-height:300px;display:flex;align-items:center;justify-content:center;flex-direction:column;">
-          <div style="color:#666;margin-bottom:10px;">Starting browser...</div>
-          <div style="color:#999;font-size:14px;">This may take 10-15 seconds</div>
+          <div style="color:#666;margin-bottom:10px;">⏳ Starting browser...</div>
+          <div style="color:#999;font-size:14px;">Render free tier can take 30-60 seconds</div>
+          <div style="color:#999;font-size:14px;margin-top:10px;">Please be patient...</div>
         </div>
         <p style="color:#666;margin:20px 0 0 0;">Scan this code with WhatsApp on your phone</p>
         <button onclick="closeQRModal()" style="margin-top:20px;padding:10px 20px;background:#dc3545;color:white;border:none;border-radius:6px;cursor:pointer;">Close</button>
@@ -142,11 +143,11 @@ async function showQRCodeModal() {
   }
   modal.style.display = 'flex';
   
-  // Wait 8 seconds before first poll to let browser start
+  // Wait 15 seconds before first poll to let browser fully start on Render
   setTimeout(() => {
     pollQRCode();
-    qrPollInterval = setInterval(pollQRCode, 3000); // Poll every 3 seconds
-  }, 8000);
+    qrPollInterval = setInterval(pollQRCode, 4000); // Poll every 4 seconds
+  }, 15000);
 }
 
 async function pollQRCode() {

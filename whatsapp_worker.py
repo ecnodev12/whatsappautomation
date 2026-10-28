@@ -108,9 +108,9 @@ class WhatsAppWorker:
             self.browser = self.context.browser
             self.is_connected = True
 
-            self.page.goto('https://web.whatsapp.com', wait_until='domcontentloaded', timeout=60000)
+            self.page.goto('https://web.whatsapp.com', wait_until='domcontentloaded', timeout=90000)
             logger.info("WhatsApp Web page loaded")
-            time.sleep(8)  # Wait for QR code to render
+            time.sleep(15)  # Wait longer for QR code to render on slow Render servers
 
             # ── Inject WA-JS once on page load ──────────────────────────────
             self._inject_wajs()
@@ -414,7 +414,7 @@ class WhatsAppWorker:
         """Capture WhatsApp QR code as base64 image for display in web UI"""
         try:
             if not self.page:
-                return {'success': False, 'error': 'Browser not connected. Click Connect first.'}
+                return {'success': False, 'error': 'Browser not connected. Please wait...'}
             
             if self.is_logged_in:
                 return {'success': False, 'error': 'Already logged in'}
@@ -423,14 +423,20 @@ class WhatsAppWorker:
             try:
                 current_url = self.page.url
                 if 'web.whatsapp.com' not in current_url:
-                    return {'success': False, 'error': 'Loading WhatsApp Web...'}
+                    return {'success': False, 'error': 'Loading WhatsApp Web... (This may take 30-60 seconds on Render)'}
             except:
-                return {'success': False, 'error': 'Page not ready yet...'}
+                return {'success': False, 'error': 'Browser starting... Please wait 30 seconds'}
             
-            # Try multiple QR code selectors
+            # Wait a bit for page to fully load
+            try:
+                self.page.wait_for_load_state('networkidle', timeout=5000)
+            except:
+                pass
+            
+            # Try multiple QR code selectors with longer wait
             qr_selectors = [
-                'canvas[aria-label*="QR"]',
-                'canvas[aria-label="Scan me!"]',
+                'canvas[aria-label*="Scan"]',
+                'canvas[aria-label*="QR"]', 
                 'canvas[role="img"]',
                 'div[data-ref] canvas',
                 'canvas'
@@ -439,34 +445,46 @@ class WhatsAppWorker:
             qr_data = None
             for selector in qr_selectors:
                 try:
-                    # Check if element exists
-                    element = self.page.query_selector(selector)
+                    # Wait for element to exist
+                    element = self.page.wait_for_selector(selector, timeout=3000)
                     if element:
+                        # Wait a bit more for canvas to render
+                        time.sleep(1)
+                        
                         # Try to get QR code
                         qr_data = self.page.evaluate(f'''() => {{
-                            const canvas = document.querySelector('{selector}');
-                            if (canvas && canvas.width > 100) {{
-                                return canvas.toDataURL('image/png');
+                            const canvases = document.querySelectorAll('{selector}');
+                            for (const canvas of canvases) {{
+                                if (canvas && canvas.width > 200 && canvas.height > 200) {{
+                                    try {{
+                                        return canvas.toDataURL('image/png');
+                                    }} catch(e) {{
+                                        console.error('Canvas toDataURL error:', e);
+                                    }}
+                                }}
                             }}
                             return null;
                         }}''')
-                        if qr_data and qr_data.startswith('data:image'):
-                            logger.info(f"QR code captured using selector: {selector}")
+                        
+                        if qr_data and qr_data.startsWith('data:image'):
+                            logger.info(f"✓ QR code captured using selector: {selector}")
                             return {'success': True, 'qr_code': qr_data}
                 except Exception as e:
                     logger.debug(f"Selector {selector} failed: {e}")
                     continue
             
-            # If no QR found, check if already logged in
+            # Check if logged in (no QR code shown)
             try:
                 is_chat_visible = self.page.query_selector('#side') is not None
                 if is_chat_visible:
                     self.is_logged_in = True
+                    logger.info("Already logged in - no QR code")
                     return {'success': False, 'error': 'Already logged in'}
             except:
                 pass
             
-            return {'success': False, 'error': 'QR code not visible yet. Please wait...'}
+            # Still waiting for QR
+            return {'success': False, 'error': 'QR code not visible yet. Please wait... (Render can take 60+ seconds to load)'}
                 
         except Exception as e:
             logger.error(f"get_qr_code error: {e}")
