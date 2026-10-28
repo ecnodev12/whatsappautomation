@@ -82,12 +82,12 @@ def vnc_viewer():
         <title>WhatsApp Browser Viewer</title>
         <style>
             body {{ margin: 0; padding: 20px; font-family: Arial; background: #1e1e1e; color: white; }}
-            .container {{ max-width: 800px; margin: 0 auto; }}
+            .container {{ max-width: 100%; margin: 0 auto; }}
             h1 {{ color: #25D366; }}
             .info {{ background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0; }}
             .btn {{ display: inline-block; padding: 12px 24px; background: #25D366; color: white; 
                     text-decoration: none; border-radius: 6px; margin: 10px 5px; }}
-            iframe {{ width: 100%; height: 80vh; border: 2px solid #25D366; border-radius: 8px; }}
+            iframe {{ width: 100%; height: 85vh; border: 2px solid #25D366; border-radius: 8px; }}
         </style>
     </head>
     <body>
@@ -101,11 +101,13 @@ def vnc_viewer():
                     <li>✅ View messages and chats</li>
                     <li>✅ Watch campaigns run in real-time</li>
                 </ul>
-                <p><strong>VNC Password:</strong> whatsapp</p>
             </div>
-            <iframe src="http://{host}:6080/vnc.html?autoconnect=true&password=whatsapp"></iframe>
+            <iframe src="http://{host}:6080/vnc.html?autoconnect=true&resize=scale"></iframe>
             <div class="info">
                 <a href="/" class="btn">← Back to Dashboard</a>
+                <p style="color:#888;font-size:12px;margin-top:10px;">
+                    Tip: Click inside the browser viewer to interact. Use your mouse and keyboard normally.
+                </p>
             </div>
         </div>
     </body>
